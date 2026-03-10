@@ -101,6 +101,8 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
         raise ValueError("Arguments are required inside the contract")
 
     if name == "start_long_running_task":
+        args = StartTaskSchema(**arguments)
+        
         # AUTHZ CHECK: Only admins can start background jobs
         current_role = user_role_var.get()
         if current_role != "admin":
