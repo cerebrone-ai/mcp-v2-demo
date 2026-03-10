@@ -2,6 +2,8 @@ import asyncio
 import uuid
 import logging
 import os
+import contextvars
+import jwt
 from typing import Dict, Any, Optional
 
 from fastapi import FastAPI, Request, HTTPException
@@ -16,6 +18,10 @@ import mcp.types as types
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("mcp-server")
+
+JWT_SECRET = "production-mcp-secret"
+# Context variable to hold the user role for the current async request execution
+user_role_var = contextvars.ContextVar("user_role", default="guest")
 
 # --- Application State for Async Tasks ---
 # In production, use Redis/Celery. For this demo, we use an in-memory dictionary.
@@ -39,6 +45,10 @@ class CheckTaskSchema(BaseModel):
 class SampleLlmSchema(BaseModel):
     data_to_analyze: str = Field(description="The raw text data that needs intelligent analysis by the client.")
     question: str = Field(description="What specific question to ask the client LLM about the data.")
+
+class LoginRequest(BaseModel):
+    username: str
+    role: str
 
 # --- Tool Registrations ---
 
@@ -81,7 +91,11 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
         raise ValueError("Arguments are required inside the contract")
 
     if name == "start_long_running_task":
-        args = StartTaskSchema(**arguments)
+        # AUTHZ CHECK: Only admins can start background jobs
+        current_role = user_role_var.get()
+        if current_role != "admin":
+            return [TextContent(type="text", text="AUTHZ ERROR: Permission Denied. You must have the 'admin' role to start background jobs. You are currently logged in as a 'guest'.")]
+
         job_id = f"job-{uuid.uuid4().hex[:8]}"
         
         background_tasks[job_id] = {
@@ -146,12 +160,47 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
 
 # --- Transport and Auth Hooks ---
 
+@app.middleware("http")
+async def extract_jwt_middleware(request: Request, call_next):
+    """
+    Middleware that runs on every HTTP request.
+    Extracts the Bearer JWT and injects the role into the async context.
+    This ensures that when POST /messages triggers the MCP server, we know the user's role.
+    """
+    token = None
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+    elif "token" in request.query_params:
+        token = request.query_params["token"]
+        
+    if token:
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+            user_role_var.set(payload.get("role", "guest"))
+        except jwt.PyJWTError:
+            pass # Invalid token, role defaults to guest
+
+    return await call_next(request)
+
+@app.post("/login")
+async def login(credentials: LoginRequest):
+    """
+    Generates a cryptographically signed JWT.
+    In real life this would check a password or communicate with an IdP.
+    """
+    payload = {
+        "sub": credentials.username,
+        "role": credentials.role,
+    }
+    encoded_jwt = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    return {"access_token": encoded_jwt}
+
 @app.get("/sse")
 async def handle_sse(request: Request):
     """
     Handle SSE connection with structured Authentication.
-    Clients must pass a bearer token matching our expected credentials,
-    either via the Authorization header or the '?token=' query param (for browsers).
+    Clients must pass a bearer JWT.
     """
     token = None
     auth_header = request.headers.get("Authorization")
@@ -161,11 +210,13 @@ async def handle_sse(request: Request):
         token = request.query_params["token"]
         
     if not token:
-        raise HTTPException(status_code=401, detail="Missing Authentication. Expected 'Bearer <token>' header or '?token=' query parameter.")
+        raise HTTPException(status_code=401, detail="Missing Authentication.")
     
-    # In a real app we would validate a JWT or session here.
-    if token != "super-secret-admin-token":
-        raise HTTPException(status_code=403, detail="Invalid credentials for the Production MCP Server.")
+    try:
+        # Validate the JWT signature
+        jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=403, detail="Invalid or expired JWT credentials.")
         
     async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
         await mcp_server.run(streams[0], streams[1], mcp_server.create_initialization_options())

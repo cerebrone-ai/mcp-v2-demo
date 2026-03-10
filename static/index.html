@@ -1,48 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Production MCP Demo</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <header>
     <h1>Model Context Protocol (MCP) Server</h1>
     <div id="statusBadge" class="statusBadge">Connected</div>
   </header>
-  
+
   <div id="authPanel" class="auth-panel">
     <h2>Secure Gateway</h2>
-    <p style="font-size: 0.9rem; margin-bottom: 20px;">Provide your Bearer token to authorize the SSE connection.</p>
-    <input type="password" id="tokenInput" value="super-secret-admin-token" placeholder="Bearer Token">
-    <button id="connectBtn" style="width: 100%; padding: 10px;">Connect over SSE</button>
+    <p style="font-size: 0.9rem; margin-bottom: 20px;">Login to generate a JWT and authorize the SSE connection.</p>
+    <input type="text" id="usernameInput" value="demo_user" placeholder="Username">
+    <select id="roleInput"
+      style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid var(--border-color); background: black; color: white;">
+      <option value="admin">Admin Role (Full Access)</option>
+      <option value="guest">Guest Role (Restrictive)</option>
+    </select>
+    <button id="loginBtn" style="width: 100%; padding: 10px;">Login & Connect</button>
   </div>
-  
+
   <div class="main-container hidden" id="mainApp">
     <div class="sidebar">
       <h2>Agent-Native Contracts</h2>
-      <p style="font-size: 0.8rem; color: #8b949e; margin-top: -10px; margin-bottom: 20px;">Strict schemas provided to the LLM upon connection.</p>
+      <p style="font-size: 0.8rem; color: #8b949e; margin-top: -10px; margin-bottom: 20px;">Strict schemas provided to
+        the LLM upon connection.</p>
       <div id="toolsList"></div>
     </div>
     <div class="content-area">
       <div class="logs" id="logsArea">
         <div class="log-entry log-sys">Welcome to the Production MCP Diagnostics Console.</div>
       </div>
-      
+
       <div class="interaction-panel">
         <h2 id="activeToolName">Execution Panel</h2>
         <div class="form-body" id="formBody">
-           <p style="font-size: 0.8rem; color: #8b949e;">Select a tool from the sidebar to inspect its contract and execute it.</p>
+          <p style="font-size: 0.8rem; color: #8b949e;">Select a tool from the sidebar to inspect its contract and
+            execute it.</p>
         </div>
         <div class="jobs-tracker hidden" id="jobsTracker">
-           <span style="font-size: 0.8rem;">Monitored Async Job: </span>
-           <span id="jobIdLabel" style="font-size: 0.8rem; color: var(--brand-color); font-family: monospace;"></span>
-           <button id="pollJobBtn" style="margin-left: 10px; padding: 4px 10px;">Poll Status Output</button>
+          <span style="font-size: 0.8rem;">Monitored Async Job: </span>
+          <span id="jobIdLabel" style="font-size: 0.8rem; color: var(--brand-color); font-family: monospace;"></span>
+          <button id="pollJobBtn" style="margin-left: 10px; padding: 4px 10px;">Poll Status Output</button>
         </div>
       </div>
     </div>
   </div>
-  
+
   <script type="module" src="app.js"></script>
 </body>
+
 </html>

@@ -3,8 +3,9 @@ import { SimpleMCPClient } from './simple_mcp_client.js';
 const ui = {
     authPanel: document.getElementById('authPanel'),
     mainApp: document.getElementById('mainApp'),
-    tokenInput: document.getElementById('tokenInput'),
-    connectBtn: document.getElementById('connectBtn'),
+    usernameInput: document.getElementById('usernameInput'),
+    roleInput: document.getElementById('roleInput'),
+    loginBtn: document.getElementById('loginBtn'),
     statusBadge: document.getElementById('statusBadge'),
     toolsList: document.getElementById('toolsList'),
     logsArea: document.getElementById('logsArea'),
@@ -26,21 +27,33 @@ function log(msg, type = 'sys') {
     ui.logsArea.scrollTop = ui.logsArea.scrollHeight;
 }
 
-ui.connectBtn.addEventListener('click', async () => {
-    const token = ui.tokenInput.value.trim();
-    if (!token) return alert('Enter a token');
+ui.loginBtn.addEventListener('click', async () => {
+    const username = ui.usernameInput.value.trim();
+    const role = ui.roleInput.value;
+    if (!username) return alert('Enter a username');
 
-    ui.connectBtn.disabled = true;
-    ui.connectBtn.innerText = 'Connecting...';
+    ui.loginBtn.disabled = true;
+    ui.loginBtn.innerText = 'Acquiring JWT...';
 
-    // server URL is same host for this demo
     const serverUrl = window.location.origin;
-    client = new SimpleMCPClient(serverUrl, token);
-
-    // Wire logs to the UI
-    client.onLog = (msg) => log(msg, 'sys');
 
     try {
+        // Step 1: Login to get signed JWT
+        log(`Authenticating ${username} as ${role}...`, 'sys');
+        const loginRes = await fetch(`${serverUrl}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, role })
+        });
+
+        if (!loginRes.ok) throw new Error('Login failed');
+        const { access_token } = await loginRes.json();
+        log(`Acquired signed JWT! Role: ${role}`, 'success');
+
+        ui.loginBtn.innerText = 'Connecting over SSE...';
+        client = new SimpleMCPClient(serverUrl, access_token);
+        client.onLog = (msg) => log(msg, 'sys');
+
         await client.connect();
         ui.authPanel.classList.add('hidden');
         ui.mainApp.classList.remove('hidden');
@@ -49,8 +62,8 @@ ui.connectBtn.addEventListener('click', async () => {
         loadTools();
     } catch (err) {
         log(`Connection failed: ${err.message}`, 'error');
-        ui.connectBtn.disabled = false;
-        ui.connectBtn.innerText = 'Connect over SSE';
+        ui.loginBtn.disabled = false;
+        ui.loginBtn.innerText = 'Login & Connect';
     }
 });
 
