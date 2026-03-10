@@ -1,0 +1,226 @@
+:root {
+  --bg-color: #0d1117;
+  --panel-bg: rgba(22, 27, 34, 0.7);
+  --border-color: #30363d;
+  --text-main: #c9d1d9;
+  --brand-color: #58a6ff;
+  --success-color: #3fb950;
+  --warning-color: #d29922;
+  --font-family: 'Inter', -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem 2rem;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #fff;
+  font-weight: 500;
+}
+
+header .statusBadge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: #238636;
+  color: #fff;
+  font-size: 0.85rem;
+  display: none;
+}
+
+.auth-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(22, 27, 34, 0.9);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  backdrop-filter: blur(20px);
+  z-index: 100;
+  width: 320px;
+}
+
+.auth-panel input {
+  width: 100%;
+  padding: 10px;
+  margin: 15px 0;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: black;
+  color: white;
+  box-sizing: border-box;
+}
+
+button {
+  background: var(--brand-color);
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+.main-container {
+  display: flex;
+  width: 100%;
+  margin-top: 60px; /* offset for header */
+  height: calc(100vh - 60px);
+}
+
+.sidebar {
+  width: 300px;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border-color);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.tool-card {
+  background: #161b22;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.tool-card:hover {
+  border-color: var(--brand-color);
+}
+
+.tool-card h3 {
+  margin: 0 0 4px 0;
+  font-size: 0.95rem;
+  color: var(--brand-color);
+}
+
+.tool-card p {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  position: relative;
+}
+
+.logs {
+  flex: 1;
+  background: #010409;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 240px;
+}
+
+.log-entry { margin-bottom: 6px; }
+.log-sys { color: #8b949e; }
+.log-tool { color: var(--brand-color); }
+.log-success { color: var(--success-color); }
+.log-error { color: #f85149; }
+
+.interaction-panel {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  backdrop-filter: blur(10px);
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.interaction-panel h2 {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.form-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.form-group {
+  margin-bottom: 10px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: #010409;
+  color: white;
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.jobs-tracker {
+  margin-top: 10px;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 10px;
+}
+.jobs-tracker button {
+  background: #238636;
+  color: white;
+  margin-top: 5px;
+  font-size: 0.8rem;
+}
