@@ -4,6 +4,8 @@ import logging
 import os
 import contextvars
 import jwt
+import sqlite3
+import json
 from typing import Dict, Any, Optional
 
 from fastapi import FastAPI, Request, HTTPException
@@ -46,6 +48,9 @@ class SampleLlmSchema(BaseModel):
     data_to_analyze: str = Field(description="The raw text data that needs intelligent analysis by the client.")
     question: str = Field(description="What specific question to ask the client LLM about the data.")
 
+class QueryCustomerSchema(BaseModel):
+    customer_id: str = Field(description="The unique user ID to query the corporate database for.")
+
 class LoginRequest(BaseModel):
     username: str
     role: str
@@ -65,6 +70,11 @@ async def handle_list_tools() -> list[Tool]:
             name="check_task_status",
             description="Check the current status and progress of a background job.",
             inputSchema=CheckTaskSchema.model_json_schema()
+        ),
+        Tool(
+            name="query_customer_context",
+            description="Securely query the internal corporate database for a customer's details and active tickets.",
+            inputSchema=QueryCustomerSchema.model_json_schema()
         ),
         Tool(
             name="sample_llm_intelligence",
@@ -121,6 +131,44 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
         else:
             return [TextContent(type="text", text=f"Job {args.job_id} completed. FINAL RESULT: {job['result']}")]
             
+    elif name == "query_customer_context":
+        args = QueryCustomerSchema(**arguments)
+        
+        # Connect to DB
+        conn = sqlite3.connect("enterprise.db")
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Fetch base customer DB
+        cursor.execute("SELECT * FROM customers WHERE customer_id = ?", (args.customer_id,))
+        customer = cursor.fetchone()
+        
+        if not customer:
+            return [TextContent(type="text", text=f"ERROR: Customer {args.customer_id} not found in database.")]
+            
+        result_data = dict(customer)
+        
+        # Fetch open tickets
+        cursor.execute("SELECT issue, status FROM support_tickets WHERE customer_id = ?", (args.customer_id,))
+        result_data['tickets'] = [dict(row) for row in cursor.fetchall()]
+        
+        # AUTHZ ROLE-BASED ACCESS CONTROL
+        # Only admins can see financial data (Lifetime value, CC)
+        current_role = user_role_var.get()
+        if current_role == "admin":
+            cursor.execute("SELECT lifetime_value, credit_card_last_4, last_payment_date FROM financials WHERE customer_id = ?", (args.customer_id,))
+            financials = cursor.fetchone()
+            if financials:
+                result_data['financials'] = dict(financials)
+            logger.info(f"Admin request: Included highly sensitive financial data in MCP response for {args.customer_id}")
+        else:
+            result_data['financials'] = "[REDACTED - AUTHZ_ERROR: You do not have 'admin' privileges. Financial data masked.]"
+            logger.info(f"Guest request: Masked sensitive financial data for {args.customer_id}")
+            
+        conn.close()
+        
+        return [TextContent(type="text", text=json.dumps(result_data, indent=2))]
+
     elif name == "sample_llm_intelligence":
         args = SampleLlmSchema(**arguments)
         
