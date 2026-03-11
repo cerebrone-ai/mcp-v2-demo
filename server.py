@@ -176,22 +176,20 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
         
         # Fetch the active session from context
         session = mcp_server.request_context.session
-        request_params = CreateMessageRequestParams(
-            messages=[
-                types.SamplingMessage(
-                    role="user",
-                    content=types.TextContent(
-                        type="text", 
-                        text=f"Please analyze this data: {args.data_to_analyze}\n\nQuestion: {args.question}"
-                    )
-                )
-            ],
-            maxTokens=1000
-        )
-        
         try:
             logger.info("Requesting client LLM sample...")
-            sample_result = await session.create_message(request_params)
+            sample_result = await session.create_message(
+                messages=[
+                    types.SamplingMessage(
+                        role="user",
+                        content=types.TextContent(
+                            type="text", 
+                            text=f"Please analyze this data: {args.data_to_analyze}\n\nQuestion: {args.question}"
+                        )
+                    )
+                ],
+                max_tokens=1000
+            )
             
             # Extract TextContent from the client's response
             client_response_text = ""
