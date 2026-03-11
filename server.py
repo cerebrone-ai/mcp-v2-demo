@@ -192,10 +192,10 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
             )
             
             # Extract TextContent from the client's response
-            client_response_text = ""
-            for content_block in sample_result.content:
-                if content_block.type == "text":
-                    client_response_text += content_block.text
+            if isinstance(sample_result.content, types.TextContent):
+                client_response_text = sample_result.content.text
+            else:
+                client_response_text = str(sample_result.content)
                     
             return [TextContent(type="text", text=f"DELEGATED TO CLIENT LLM SUCCESS.\nClient's Intelligence Result:\n{client_response_text}")]
             
